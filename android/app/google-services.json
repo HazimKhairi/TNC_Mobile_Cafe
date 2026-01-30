@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "675029213087",
+    "project_id": "tnccafe-bb6a7",
+    "storage_bucket": "tnccafe-bb6a7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:675029213087:android:f8faf6197a6bb4295227aa",
+        "android_client_info": {
+          "package_name": "com.example.tnc_cafe_mobile_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDDPYFUwkTLHB9r2-1A23-IcRGv0YxVtE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
