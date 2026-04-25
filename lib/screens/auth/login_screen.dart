@@ -7,7 +7,9 @@ import '../main_shell.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final bool returnResult;
+
+  const LoginScreen({super.key, this.returnResult = false});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -42,9 +44,14 @@ class _LoginScreenState extends State<LoginScreen> {
             _passwordController.text,
           );
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainShell()),
-        );
+        if (widget.returnResult && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(true);
+        } else {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const MainShell()),
+            (route) => false,
+          );
+        }
       }
     } catch (e) {
       setState(() {
