@@ -3,15 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
-import '../../utils/test_accounts.dart';
-import '../../widgets/linen_background.dart';
 import '../main_shell.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  final bool returnResult;
-
-  const LoginScreen({super.key, this.returnResult = false});
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -46,43 +42,14 @@ class _LoginScreenState extends State<LoginScreen> {
             _passwordController.text,
           );
       if (mounted) {
-        if (widget.returnResult && Navigator.of(context).canPop()) {
-          Navigator.of(context).pop(true);
-        } else {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const MainShell()),
-            (route) => false,
-          );
-        }
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MainShell()),
+        );
       }
     } catch (e) {
       setState(() {
         _error = _friendlyError(e);
       });
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _quickLogin(String role) async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      await TestAccounts.ensureAndLogin(role);
-      if (mounted) {
-        if (widget.returnResult && Navigator.of(context).canPop()) {
-          Navigator.of(context).pop(true);
-        } else {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const MainShell()),
-            (route) => false,
-          );
-        }
-      }
-    } catch (e) {
-      setState(() => _error = _friendlyError(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -102,11 +69,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: LinenBackground(
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Form(
               key: _formKey,
@@ -114,11 +80,22 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Logo
-                  Image.asset(
-                    'assets/images/logo.png',
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.cover,
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBrand,
+                      borderRadius: BorderRadius.circular(26),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(26),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Text(
@@ -126,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: GoogleFonts.spectral(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.darkGreen,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -198,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: ElevatedButton(
                       onPressed: _loading ? null : _login,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryBrand,
+                        backgroundColor: AppColors.accentBlue,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -247,101 +224,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: GoogleFonts.inter(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.primaryBrand,
+                            color: AppColors.accentBlue,
                           ),
                         ),
                       ),
                     ],
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  // ── Quick Test Login (dev / demo) ──
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: AppColors.divider)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: Text(
-                          'TEST ACCOUNTS',
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1.2,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                      Expanded(child: Divider(color: AppColors.divider)),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _loading ? null : () => _quickLogin('admin'),
-                          icon: const Icon(Icons.admin_panel_settings_outlined,
-                              size: 18),
-                          label: Text(
-                            'Staff',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primaryBrand,
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            side: BorderSide(
-                                color: AppColors.primaryBrand, width: 1),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _loading ? null : () => _quickLogin('user'),
-                          icon: const Icon(Icons.person_outline, size: 18),
-                          label: Text(
-                            'Customer',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primaryBrand,
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            side: BorderSide(
-                                color: AppColors.primaryBrand, width: 1),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Tap to auto-create + login (first time takes a moment)',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
-                    ),
-                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
             ),
           ),
-        ),
         ),
       ),
     );
@@ -365,7 +257,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: AppColors.primaryBrand, width: 1.5),
+        borderSide: BorderSide(color: AppColors.accentBlue, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
