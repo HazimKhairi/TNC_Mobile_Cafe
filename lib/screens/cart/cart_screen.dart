@@ -354,8 +354,8 @@ class CartScreen extends StatelessWidget {
     final cart = context.read<CartProvider>();
     final totalAmount = cart.totalAmount + 10;
 
-    // QR Payment step (with simulation)
-    final paid = await Navigator.of(context).push<bool>(
+    // QR Payment + receipt upload step
+    final receipt = await Navigator.of(context).push<PaymentReceipt>(
       MaterialPageRoute(
         builder: (_) => QrPaymentScreen(
           amount: totalAmount,
@@ -364,7 +364,7 @@ class CartScreen extends StatelessWidget {
         ),
       ),
     );
-    if (paid != true || !context.mounted) return;
+    if (receipt == null || !context.mounted) return;
 
     final orderProvider = context.read<OrderProvider>();
     final currentUser = context.read<AuthProvider>().currentUser;
@@ -376,6 +376,8 @@ class CartScreen extends StatelessWidget {
       customerName: currentUser?.displayName,
       orderType: result['orderType'] as String,
       tableNumber: result['tableNumber'] as int?,
+      receiptUrl: receipt.url,
+      receiptType: receipt.type,
     );
 
     if (!context.mounted) return;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../config/theme.dart';
 import '../../models/order.dart';
+import '../../widgets/linen_background.dart';
 
 class OrderConfirmationScreen extends StatefulWidget {
   final Order order;
@@ -43,32 +44,39 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: AnimatedBuilder(
+      backgroundColor: Colors.transparent,
+      body: LinenBackground(
+        child: SafeArea(
+          child: AnimatedBuilder(
           animation: _controller,
           builder: (context, _) {
-            return Padding(
+            return SingleChildScrollView(
               padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Spacer(),
-                  // Success icon
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).padding.top -
+                      MediaQuery.of(context).padding.bottom -
+                      48,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                  // Receipt-submitted icon
                   Transform.scale(
                     scale: _scaleAnim.value,
                     child: Container(
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: AppColors.success.withValues(alpha: 0.1),
+                        color: AppColors.warning.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Center(
                         child: Icon(
-                          Icons.check_rounded,
-                          size: 50,
-                          color: AppColors.success,
+                          Icons.hourglass_top_rounded,
+                          size: 48,
+                          color: AppColors.warning,
                         ),
                       ),
                     ),
@@ -79,7 +87,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
                     child: Column(
                       children: [
                         Text(
-                          'Order Placed!',
+                          'Receipt Submitted!',
                           style: GoogleFonts.spectral(
                             fontSize: 28,
                             fontWeight: FontWeight.w700,
@@ -87,11 +95,16 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          'Your order is being prepared',
-                          style: GoogleFonts.inter(
-                            fontSize: 15,
-                            color: AppColors.textSecondary,
+                        Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'Awaiting admin verification. We will notify you once your payment is approved and we start preparing your order.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 32),
@@ -104,7 +117,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
+                                color: AppColors.divider.withValues(alpha: 0.5),
                                 blurRadius: 15,
                                 offset: const Offset(0, 5),
                               ),
@@ -143,7 +156,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04),
+                                color: AppColors.divider.withValues(alpha: 0.4),
                                 blurRadius: 10,
                                 offset: const Offset(0, 2),
                               ),
@@ -164,11 +177,30 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
                               ),
                               const SizedBox(height: 14),
                               _DetailRow(
-                                icon: Icons.local_cafe_outlined,
-                                label: 'Status',
-                                value: widget.order.statusLabel,
+                                icon: Icons.verified_user_outlined,
+                                label: 'Payment',
+                                value: widget.order.paymentStatusLabel,
                                 valueColor: AppColors.warning,
                               ),
+                              const SizedBox(height: 14),
+                              _DetailRow(
+                                icon: widget.order.orderType == 'dine_in'
+                                    ? Icons.restaurant_rounded
+                                    : Icons.takeout_dining_rounded,
+                                label: 'Order Type',
+                                value: widget.order.orderType == 'dine_in'
+                                    ? 'Dine-in'
+                                    : 'Takeaway',
+                              ),
+                              if (widget.order.orderType == 'dine_in' &&
+                                  widget.order.tableNumber != null) ...[
+                                const SizedBox(height: 14),
+                                _DetailRow(
+                                  icon: Icons.table_bar_outlined,
+                                  label: 'Table Number',
+                                  value: '${widget.order.tableNumber}',
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -176,7 +208,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
                     ),
                   ),
 
-                  const Spacer(),
+                  const SizedBox(height: 32),
 
                   // Back button
                   Opacity(
@@ -188,7 +220,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
                           Navigator.of(context).popUntil((route) => route.isFirst);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accentBlue,
+                          backgroundColor: AppColors.primaryBrand,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
@@ -216,8 +248,8 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
                           Navigator.of(context).popUntil((route) => route.isFirst);
                         },
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.accentBlue,
-                          side: const BorderSide(color: AppColors.accentBlue),
+                          foregroundColor: AppColors.primaryBrand,
+                          side: const BorderSide(color: AppColors.primaryBrand),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
@@ -234,9 +266,11 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
                     ),
                   ),
                 ],
+                ),
               ),
             );
           },
+        ),
         ),
       ),
     );
@@ -264,10 +298,10 @@ class _DetailRow extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: AppColors.accentBlue.withValues(alpha: 0.08),
+            color: AppColors.accentGreen.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, size: 18, color: AppColors.accentBlue),
+          child: Icon(icon, size: 18, color: AppColors.accentGreen),
         ),
         const SizedBox(width: 12),
         Expanded(
