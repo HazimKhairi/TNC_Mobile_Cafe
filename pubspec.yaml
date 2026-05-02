@@ -28,6 +28,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.1
 
 flutter:
   uses-material-design: true
@@ -35,3 +36,12 @@ flutter:
     - assets/images/
     - assets/images/menu/
     - assets/images/menu/default-image.png
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/logo_with_bg.png"
+  remove_alpha_ios: true
+  background_color_ios: "#FAF8F3"
+  adaptive_icon_background: "#FAF8F3"
+  adaptive_icon_foreground: "assets/images/logo_with_bg.png"
