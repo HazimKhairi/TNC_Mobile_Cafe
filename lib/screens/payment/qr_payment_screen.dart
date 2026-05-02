@@ -346,9 +346,9 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: (expired || _uploading || !hasFile)
+                        onPressed: (expired || _uploading)
                             ? null
-                            : _submitReceipt,
+                            : (hasFile ? _submitReceipt : _showSourceSheet),
                         icon: _uploading
                             ? const SizedBox(
                                 width: 18,
@@ -358,13 +358,18 @@ class _QrPaymentScreenState extends State<QrPaymentScreen> {
                                   color: Colors.white,
                                 ),
                               )
-                            : const Icon(Icons.cloud_upload_rounded, size: 18),
+                            : Icon(
+                                hasFile
+                                    ? Icons.cloud_upload_rounded
+                                    : Icons.upload_file_rounded,
+                                size: 18,
+                              ),
                         label: Text(
                           _uploading
                               ? 'Uploading...'
                               : (hasFile
                                   ? 'Submit for Verification'
-                                  : 'Upload Receipt to Continue'),
+                                  : 'Upload Receipt'),
                           style: GoogleFonts.inter(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
