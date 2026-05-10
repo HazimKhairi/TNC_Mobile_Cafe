@@ -4,421 +4,624 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
+import '../../models/order.dart';
 import '../../providers/order_provider.dart';
+import '../../widgets/linen_background.dart';
 
-class SalesReportScreen extends StatelessWidget {
+class SalesReportScreen extends StatefulWidget {
   const SalesReportScreen({super.key});
+
+  @override
+  State<SalesReportScreen> createState() => _SalesReportScreenState();
+}
+
+class _SalesReportScreenState extends State<SalesReportScreen> {
+  late DateTime _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _selectedDate = DateTime(now.year, now.month, now.day);
+  }
+
+  bool get _isToday {
+    final now = DateTime.now();
+    return _selectedDate.year == now.year &&
+        _selectedDate.month == now.month &&
+        _selectedDate.day == now.day;
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(now.year - 2, 1, 1),
+      lastDate: now,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryBrand,
+              onPrimary: Colors.white,
+              surface: AppColors.surface,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = DateTime(picked.year, picked.month, picked.day);
+      });
+    }
+  }
+
+  // ── Per-date computed metrics ──
+
+  bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  double _revenueOn(List<Order> orders, DateTime date) => orders
+      .where((o) =>
+          _sameDay(o.createdAt, date) && o.status == OrderStatus.completed)
+      .fold(0.0, (sum, o) => sum + o.totalAmount);
+
+  int _orderCountOn(List<Order> orders, DateTime date) =>
+      orders.where((o) => _sameDay(o.createdAt, date)).length;
+
+  /// 7 days ending on [endDate]
+  Map<String, double> _weeklySalesEndingOn(
+      List<Order> orders, DateTime endDate) {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final Map<String, double> sales = {};
+    for (int i = 6; i >= 0; i--) {
+      final d = endDate.subtract(Duration(days: i));
+      final dayName = days[d.weekday - 1];
+      sales[dayName] = _revenueOn(orders, d);
+    }
+    return sales;
+  }
+
+  /// Top 5 selling items for orders on [date]
+  Map<String, int> _topItemsOn(List<Order> orders, DateTime date) {
+    final Map<String, int> counts = {};
+    for (final o in orders.where((o) =>
+        _sameDay(o.createdAt, date) && o.status == OrderStatus.completed)) {
+      for (final item in o.items) {
+        counts[item.drink.name] =
+            (counts[item.drink.name] ?? 0) + item.quantity;
+      }
+    }
+    final sorted = counts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return Map.fromEntries(sorted.take(5));
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Consumer<OrderProvider>(
-          builder: (context, orderProvider, _) {
-            final weeklySales = orderProvider.weeklySales;
-            final topItems = orderProvider.topSellingItems;
+      backgroundColor: Colors.transparent,
+      body: LinenBackground(
+        child: SafeArea(
+          child: Consumer<OrderProvider>(
+            builder: (context, orderProvider, _) {
+              final orders = orderProvider.orders;
+              final weeklySales = _weeklySalesEndingOn(orders, _selectedDate);
+              final topItems = _topItemsOn(orders, _selectedDate);
+              final revenue = _revenueOn(orders, _selectedDate);
+              final orderCount = _orderCountOn(orders, _selectedDate);
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Sales Report',
-                        style: GoogleFonts.spectral(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.calendar_today_rounded, size: 14, color: AppColors.accentBlue),
-                            const SizedBox(width: 6),
-                            Text(
-                              DateFormat('MMM d, yyyy').format(DateTime.now()),
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+              final completedOnDate = orders
+                  .where((o) =>
+                      _sameDay(o.createdAt, _selectedDate) &&
+                      o.status == OrderStatus.completed)
+                  .toList();
+              final avgOrder = completedOnDate.isEmpty
+                  ? 0.0
+                  : completedOnDate.fold<double>(
+                          0, (s, o) => s + o.totalAmount) /
+                      completedOnDate.length;
+
+              final dateLabel = DateFormat('MMM d, yyyy').format(_selectedDate);
+              final revenueLabel =
+                  _isToday ? "Today's Revenue" : 'Revenue';
+              final ordersLabel =
+                  _isToday ? "Today's Orders" : 'Orders';
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      children: [
+                        if (Navigator.of(context).canPop())
+                          GestureDetector(
+                            onTap: () => Navigator.of(context).pop(),
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              margin: const EdgeInsets.only(right: 12),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                size: 16,
                                 color: AppColors.textPrimary,
                               ),
                             ),
-                          ],
+                          ),
+                        Expanded(
+                          child: Text(
+                            'Sales Report',
+                            style: GoogleFonts.spectral(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Summary Cards Row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _SummaryCard(
-                          title: "Today's Revenue",
-                          value: 'RM${orderProvider.todayRevenue.toStringAsFixed(0)}',
-                          icon: Icons.trending_up_rounded,
-                          iconColor: AppColors.success,
-                          iconBgColor: AppColors.success.withValues(alpha: 0.1),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: _SummaryCard(
-                          title: "Today's Orders",
-                          value: '${orderProvider.todayOrderCount}',
-                          icon: Icons.receipt_long_rounded,
-                          iconColor: AppColors.accentBlue,
-                          iconBgColor: AppColors.accentBlue.withValues(alpha: 0.1),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _SummaryCard(
-                          title: 'Total Orders',
-                          value: '${orderProvider.orders.length}',
-                          icon: Icons.shopping_bag_outlined,
-                          iconColor: AppColors.warning,
-                          iconBgColor: AppColors.warning.withValues(alpha: 0.1),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: _SummaryCard(
-                          title: 'Avg. Order',
-                          value: orderProvider.orders.isNotEmpty
-                              ? 'RM${(orderProvider.orders.where((o) => o.status.name == 'completed').fold<double>(0, (s, o) => s + o.totalAmount) / (orderProvider.orders.where((o) => o.status.name == 'completed').length.clamp(1, 999))).toStringAsFixed(0)}'
-                              : 'RM0',
-                          icon: Icons.analytics_outlined,
-                          iconColor: AppColors.primaryBrand,
-                          iconBgColor: AppColors.primaryBrand.withValues(alpha: 0.1),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  // Weekly Sales Chart
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
+                        // Tap-to-pick date chip
+                        InkWell(
+                          onTap: _pickDate,
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: AppColors.primaryBrand
+                                    .withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.calendar_today_rounded,
+                                    size: 14,
+                                    color: AppColors.primaryBrand),
+                                const SizedBox(width: 6),
+                                Text(
+                                  dateLabel,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.arrow_drop_down_rounded,
+                                    size: 18,
+                                    color: AppColors.textSecondary),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+
+                    const SizedBox(height: 12),
+
+                    // Quick reset to today
+                    if (!_isToday)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: () {
+                              final now = DateTime.now();
+                              setState(() {
+                                _selectedDate = DateTime(
+                                    now.year, now.month, now.day);
+                              });
+                            },
+                            icon: const Icon(Icons.refresh_rounded,
+                                size: 16,
+                                color: AppColors.primaryBrand),
+                            label: Text(
+                              'Back to today',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.primaryBrand,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    const SizedBox(height: 12),
+
+                    // Summary Cards Row 1
+                    Row(
                       children: [
-                        Text(
-                          'Weekly Sales',
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
+                        Expanded(
+                          child: _SummaryCard(
+                            title: revenueLabel,
+                            value: 'RM${revenue.toStringAsFixed(0)}',
+                            icon: Icons.trending_up_rounded,
+                            iconColor: AppColors.success,
+                            iconBgColor:
+                                AppColors.success.withValues(alpha: 0.1),
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Last 7 days revenue',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: _SummaryCard(
+                            title: ordersLabel,
+                            value: '$orderCount',
+                            icon: Icons.receipt_long_rounded,
+                            iconColor: AppColors.accentGreen,
+                            iconBgColor:
+                                AppColors.accentGreen.withValues(alpha: 0.1),
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          height: 200,
-                          child: weeklySales.values.every((v) => v == 0)
-                              ? Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Text('📊', style: TextStyle(fontSize: 32)),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'No sales data yet',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 13,
-                                          color: AppColors.textSecondary,
+                      ],
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _SummaryCard(
+                            title: 'Total Orders (all time)',
+                            value: '${orders.length}',
+                            icon: Icons.shopping_bag_outlined,
+                            iconColor: AppColors.warning,
+                            iconBgColor:
+                                AppColors.warning.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: _SummaryCard(
+                            title: 'Avg. Order',
+                            value: 'RM${avgOrder.toStringAsFixed(0)}',
+                            icon: Icons.analytics_outlined,
+                            iconColor: AppColors.primaryBrand,
+                            iconBgColor:
+                                AppColors.primaryBrand.withValues(alpha: 0.1),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // Weekly Sales Chart
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.divider.withValues(alpha: 0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Weekly Sales',
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _isToday
+                                ? 'Last 7 days revenue'
+                                : '7 days ending $dateLabel',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            height: 200,
+                            child: weeklySales.values.every((v) => v == 0)
+                                ? Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const Text('📊',
+                                            style: TextStyle(fontSize: 32)),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'No sales data for this range',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 13,
+                                            color: AppColors.textSecondary,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Generate sample data below',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 11,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              : BarChart(
-                                  BarChartData(
-                                    alignment: BarChartAlignment.spaceAround,
-                                    maxY: weeklySales.values.reduce((a, b) => a > b ? a : b) * 1.3,
-                                    barTouchData: BarTouchData(
-                                      touchTooltipData: BarTouchTooltipData(
-                                        getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                                          final day = weeklySales.keys.elementAt(group.x.toInt());
-                                          return BarTooltipItem(
-                                            '$day\nRM${rod.toY.toStringAsFixed(0)}',
-                                            GoogleFonts.inter(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 12,
-                                            ),
-                                          );
-                                        },
-                                      ),
+                                      ],
                                     ),
-                                    titlesData: FlTitlesData(
-                                      show: true,
-                                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                      leftTitles: AxisTitles(
-                                        sideTitles: SideTitles(
-                                          showTitles: true,
-                                          reservedSize: 42,
-                                          getTitlesWidget: (value, meta) {
-                                            return Padding(
-                                              padding: const EdgeInsets.only(right: 8),
-                                              child: Text(
-                                                'RM${(value / 1000).toStringAsFixed(1)}k',
-                                                style: GoogleFonts.inter(
-                                                  fontSize: 10,
-                                                  color: AppColors.textSecondary,
-                                                ),
+                                  )
+                                : BarChart(
+                                    BarChartData(
+                                      alignment:
+                                          BarChartAlignment.spaceAround,
+                                      maxY: weeklySales.values
+                                              .reduce((a, b) => a > b ? a : b) *
+                                          1.3,
+                                      barTouchData: BarTouchData(
+                                        touchTooltipData:
+                                            BarTouchTooltipData(
+                                          getTooltipItem: (group, groupIndex,
+                                              rod, rodIndex) {
+                                            final day = weeklySales.keys
+                                                .elementAt(group.x.toInt());
+                                            return BarTooltipItem(
+                                              '$day\nRM${rod.toY.toStringAsFixed(0)}',
+                                              GoogleFonts.inter(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 12,
                                               ),
                                             );
                                           },
                                         ),
                                       ),
-                                      bottomTitles: AxisTitles(
-                                        sideTitles: SideTitles(
-                                          showTitles: true,
-                                          getTitlesWidget: (value, meta) {
-                                            final idx = value.toInt();
-                                            if (idx >= 0 && idx < weeklySales.length) {
+                                      titlesData: FlTitlesData(
+                                        show: true,
+                                        topTitles: const AxisTitles(
+                                            sideTitles: SideTitles(
+                                                showTitles: false)),
+                                        rightTitles: const AxisTitles(
+                                            sideTitles: SideTitles(
+                                                showTitles: false)),
+                                        leftTitles: AxisTitles(
+                                          sideTitles: SideTitles(
+                                            showTitles: true,
+                                            reservedSize: 50,
+                                            getTitlesWidget: (value, meta) {
+                                              String label;
+                                              if (value >= 1000) {
+                                                label =
+                                                    'RM${(value / 1000).toStringAsFixed(1)}k';
+                                              } else {
+                                                label =
+                                                    'RM${value.toStringAsFixed(0)}';
+                                              }
                                               return Padding(
-                                                padding: const EdgeInsets.only(top: 8),
+                                                padding:
+                                                    const EdgeInsets.only(
+                                                        right: 8),
                                                 child: Text(
-                                                  weeklySales.keys.elementAt(idx),
+                                                  label,
                                                   style: GoogleFonts.inter(
-                                                    fontSize: 11,
-                                                    color: AppColors.textSecondary,
-                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 10,
+                                                    color: AppColors
+                                                        .textSecondary,
                                                   ),
                                                 ),
                                               );
-                                            }
-                                            return const SizedBox.shrink();
-                                          },
-                                        ),
-                                      ),
-                                    ),
-                                    borderData: FlBorderData(show: false),
-                                    gridData: FlGridData(
-                                      show: true,
-                                      drawVerticalLine: false,
-                                      horizontalInterval: weeklySales.values.reduce((a, b) => a > b ? a : b) / 4,
-                                      getDrawingHorizontalLine: (value) => FlLine(
-                                        color: AppColors.divider,
-                                        strokeWidth: 1,
-                                      ),
-                                    ),
-                                    barGroups: weeklySales.entries.toList().asMap().entries.map((entry) {
-                                      return BarChartGroupData(
-                                        x: entry.key,
-                                        barRods: [
-                                          BarChartRodData(
-                                            toY: entry.value.value,
-                                            color: AppColors.accentBlue,
-                                            width: 20,
-                                            borderRadius: const BorderRadius.vertical(
-                                              top: Radius.circular(6),
-                                            ),
+                                            },
                                           ),
-                                        ],
-                                      );
-                                    }).toList(),
+                                        ),
+                                        bottomTitles: AxisTitles(
+                                          sideTitles: SideTitles(
+                                            showTitles: true,
+                                            getTitlesWidget: (value, meta) {
+                                              final idx = value.toInt();
+                                              if (idx >= 0 &&
+                                                  idx < weeklySales.length) {
+                                                return Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          top: 8),
+                                                  child: Text(
+                                                    weeklySales.keys
+                                                        .elementAt(idx),
+                                                    style: GoogleFonts.inter(
+                                                      fontSize: 11,
+                                                      color: AppColors
+                                                          .textSecondary,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                              return const SizedBox.shrink();
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                      borderData:
+                                          FlBorderData(show: false),
+                                      gridData: FlGridData(
+                                        show: true,
+                                        drawVerticalLine: false,
+                                        horizontalInterval: (weeklySales
+                                                    .values
+                                                    .reduce((a, b) =>
+                                                        a > b ? a : b) /
+                                                4)
+                                            .clamp(1, double.infinity),
+                                        getDrawingHorizontalLine: (value) =>
+                                            FlLine(
+                                          color: AppColors.divider,
+                                          strokeWidth: 1,
+                                        ),
+                                      ),
+                                      barGroups: weeklySales.entries
+                                          .toList()
+                                          .asMap()
+                                          .entries
+                                          .map((entry) {
+                                        return BarChartGroupData(
+                                          x: entry.key,
+                                          barRods: [
+                                            BarChartRodData(
+                                              toY: entry.value.value,
+                                              color:
+                                                  AppColors.primaryBrand,
+                                              width: 20,
+                                              borderRadius:
+                                                  const BorderRadius
+                                                      .vertical(
+                                                top: Radius.circular(6),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // Top Selling Items (for selected date)
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.divider.withValues(alpha: 0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Top Selling Items',
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _isToday ? 'Today' : 'On $dateLabel',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (topItems.isEmpty)
+                            Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Text(
+                                  'No sales data for this date',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    color: AppColors.textSecondary,
                                   ),
                                 ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  // Top Selling Items
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Top Selling Items',
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        if (topItems.isEmpty)
-                          Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: Text(
-                                'No sales data yet',
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  color: AppColors.textSecondary,
+                              ),
+                            )
+                          else
+                            ...topItems.entries
+                                .toList()
+                                .asMap()
+                                .entries
+                                .map((entry) {
+                              final rank = entry.key + 1;
+                              final name = entry.value.key;
+                              final count = entry.value.value;
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: entry.key < topItems.length - 1
+                                      ? 12
+                                      : 0,
                                 ),
-                              ),
-                            ),
-                          )
-                        else
-                          ...topItems.entries.toList().asMap().entries.map((entry) {
-                            final rank = entry.key + 1;
-                            final name = entry.value.key;
-                            final count = entry.value.value;
-                            return Padding(
-                              padding: EdgeInsets.only(
-                                bottom: entry.key < topItems.length - 1 ? 12 : 0,
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 28,
-                                    height: 28,
-                                    decoration: BoxDecoration(
-                                      color: rank <= 3
-                                          ? AppColors.accentBlue.withValues(alpha: 0.1)
-                                          : AppColors.background,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        '$rank',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
-                                          color: rank <= 3 ? AppColors.accentBlue : AppColors.textSecondary,
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 28,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                        color: rank <= 3
+                                            ? AppColors.primaryBrand
+                                                .withValues(alpha: 0.1)
+                                            : AppColors.background,
+                                        borderRadius:
+                                            BorderRadius.circular(8),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '$rank',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: rank <= 3
+                                                ? AppColors.primaryBrand
+                                                : AppColors.textSecondary,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      name,
-                                      style: GoogleFonts.inter(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: AppColors.textPrimary,
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        name,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: AppColors.textPrimary,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  Text(
-                                    '$count sold',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textSecondary,
+                                    Text(
+                                      '$count sold',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textSecondary,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Generate Sample Data Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        context.read<OrderProvider>().generateSampleData();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Row(
-                              children: [
-                                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                                const SizedBox(width: 10),
-                                Text(
-                                  'Sample data generated!',
-                                  style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            backgroundColor: AppColors.success,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            margin: const EdgeInsets.all(16),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-                      label: Text(
-                        'Generate Sample Sales Data',
-                        style: GoogleFonts.inter(fontWeight: FontWeight.w500),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.accentBlue,
-                        side: BorderSide(color: AppColors.accentBlue.withValues(alpha: 0.3)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
+                              );
+                            }),
+                        ],
                       ),
                     ),
-                  ),
-                ],
-              ),
-            );
-          },
+
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
