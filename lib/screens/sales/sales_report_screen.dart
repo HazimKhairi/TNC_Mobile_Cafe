@@ -200,9 +200,9 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
         child: SafeArea(
           child: Consumer<OrderProvider>(
             builder: (context, orderProvider, _) {
-              final orders = orderProvider.orders.isEmpty
-                  ? _demoOrders(_selectedDate)
-                  : orderProvider.orders;
+              // Hardcoded demo data for this page only — always shown
+              // regardless of real orders.
+              final orders = _demoOrders(_selectedDate);
               final weeklySales = _weeklySalesEndingOn(orders, _selectedDate);
               final topItems = _topItemsOn(orders, _selectedDate);
               final revenue = _revenueOn(orders, _selectedDate);
