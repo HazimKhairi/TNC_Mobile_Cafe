@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
+import '../../models/cart_item.dart';
+import '../../models/drink.dart';
 import '../../models/order.dart';
 import '../../providers/order_provider.dart';
 import '../../widgets/linen_background.dart';
@@ -83,15 +85,96 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
       final dayName = days[d.weekday - 1];
       sales[dayName] = _revenueOn(orders, d);
     }
-    // Demo fallback: show sample revenue when there's no real sales data yet.
-    if (sales.values.every((v) => v == 0)) {
-      const demo = [320.0, 480.0, 410.0, 650.0, 720.0, 980.0, 560.0];
-      final keys = sales.keys.toList();
-      for (int i = 0; i < keys.length; i++) {
-        sales[keys[i]] = demo[i];
+    return sales;
+  }
+
+  /// Demo dataset used only when there are no real orders yet, so every
+  /// section on this report (revenue, orders, avg, top items, weekly chart)
+  /// stays consistent with each other.
+  List<Order> _demoOrders(DateTime anchor) {
+    final drinks = <Drink>[
+      Drink(
+          id: 'd1',
+          name: 'Iced Caramel Latte',
+          description: '',
+          basePrice: 12,
+          categoryId: 'demo',
+          imageEmoji: '🥤'),
+      Drink(
+          id: 'd2',
+          name: 'Cappuccino',
+          description: '',
+          basePrice: 10,
+          categoryId: 'demo',
+          imageEmoji: '☕'),
+      Drink(
+          id: 'd3',
+          name: 'Matcha Latte',
+          description: '',
+          basePrice: 13,
+          categoryId: 'demo',
+          imageEmoji: '🍵'),
+      Drink(
+          id: 'd4',
+          name: 'Chocolate Frappe',
+          description: '',
+          basePrice: 15,
+          categoryId: 'demo',
+          imageEmoji: '🍫'),
+      Drink(
+          id: 'd5',
+          name: 'Espresso',
+          description: '',
+          basePrice: 8,
+          categoryId: 'demo',
+          imageEmoji: '⚡'),
+      Drink(
+          id: 'd6',
+          name: 'Hazelnut Mocha',
+          description: '',
+          basePrice: 14,
+          categoryId: 'demo',
+          imageEmoji: '🌰'),
+    ];
+
+    // Orders per day for the 7-day window ending on [anchor] (rising to weekend).
+    const dayCounts = [8, 12, 10, 15, 18, 24, 14];
+    final orders = <Order>[];
+    int seq = 0;
+    for (int i = 6; i >= 0; i--) {
+      final day = anchor.subtract(Duration(days: i));
+      final count = dayCounts[6 - i];
+      for (int k = 0; k < count; k++) {
+        final drinkA = drinks[seq % drinks.length];
+        final drinkB = drinks[(seq + 2) % drinks.length];
+        final items = <CartItem>[
+          CartItem(
+            id: drinkA.id,
+            drink: drinkA,
+            selectedSize: DrinkSize(label: 'Regular', priceAdd: 0),
+            quantity: 1 + (seq % 2),
+          ),
+          if (k % 3 == 0)
+            CartItem(
+              id: drinkB.id,
+              drink: drinkB,
+              selectedSize: DrinkSize(label: 'Large', priceAdd: 2),
+              quantity: 1,
+            ),
+        ];
+        orders.add(Order(
+          id: 'demo-$seq',
+          items: items,
+          totalAmount: items.fold(0.0, (s, it) => s + it.totalPrice),
+          createdAt: DateTime(day.year, day.month, day.day, 9 + (k % 10)),
+          status: OrderStatus.completed,
+          orderNumber: 1000 + seq,
+          paymentStatus: PaymentStatus.approved,
+        ));
+        seq++;
       }
     }
-    return sales;
+    return orders;
   }
 
   /// Top 5 selling items for orders on [date]
@@ -117,7 +200,9 @@ class _SalesReportScreenState extends State<SalesReportScreen> {
         child: SafeArea(
           child: Consumer<OrderProvider>(
             builder: (context, orderProvider, _) {
-              final orders = orderProvider.orders;
+              final orders = orderProvider.orders.isEmpty
+                  ? _demoOrders(_selectedDate)
+                  : orderProvider.orders;
               final weeklySales = _weeklySalesEndingOn(orders, _selectedDate);
               final topItems = _topItemsOn(orders, _selectedDate);
               final revenue = _revenueOn(orders, _selectedDate);
