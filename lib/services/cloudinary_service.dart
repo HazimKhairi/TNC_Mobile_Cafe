@@ -5,9 +5,9 @@ import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 
 class CloudinaryService {
-  static const _cloudName = 'dfy0rpjdv';
-  static const _apiKey = '655824831933762';
-  static const _apiSecret = 'FRwZqGvVhIeM2I6CdSrutsGbLiQ';
+  static const _cloudName = 'ydqdfm7a';
+  static const _apiKey = '571367794174511';
+  static const _apiSecret = 'ChsjyTVDPRnj4RdCfWZrNe-h-A0';
   static const _menuFolder = 'tnc_cafe_menu';
   static const _receiptFolder = 'tnc_cafe_receipts';
 
