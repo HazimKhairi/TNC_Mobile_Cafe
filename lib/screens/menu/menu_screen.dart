@@ -70,6 +70,18 @@ class _MenuScreenState extends State<MenuScreen> {
     return drinks;
   }
 
+  /// Smart square-crop for Cloudinary thumbnails so every drink fills the
+  /// thumbnail consistently (auto-focuses on the subject, not the background).
+  String _squareThumbUrl(String url) {
+    if (!url.contains('res.cloudinary.com') || !url.contains('/upload/')) {
+      return url;
+    }
+    return url.replaceFirst(
+      '/upload/',
+      '/upload/c_fill,g_auto,ar_1:1,w_200/',
+    );
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -400,7 +412,7 @@ class _MenuListItem extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 child: drink.imageUrl != null && drink.imageUrl!.isNotEmpty
                     ? Image.network(
-                        drink.imageUrl!,
+                        _squareThumbUrl(drink.imageUrl!),
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Center(
                           child: Text(drink.imageEmoji,
