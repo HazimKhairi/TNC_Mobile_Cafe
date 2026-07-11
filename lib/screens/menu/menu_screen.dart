@@ -22,7 +22,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
   // Main tab groupings that map to one or more category IDs
   static const List<Map<String, dynamic>> _mainTabs = [
-    {'label': 'All', 'icon': Icons.local_cafe_outlined, 'categoryIds': <String>['all']},
+    {'label': 'All', 'icon': Icons.grid_view_outlined, 'categoryIds': <String>['all']},
     {'label': 'Coffee', 'icon': Icons.coffee_outlined, 'categoryIds': <String>['coffee']},
     {'label': 'Non-Coffee', 'icon': Icons.local_drink_outlined, 'categoryIds': <String>['matcha', 'tea']},
     {'label': 'Ice Blended', 'icon': Icons.icecream_outlined, 'categoryIds': <String>['ice_blended']},
