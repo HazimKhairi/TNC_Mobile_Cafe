@@ -14,13 +14,13 @@ class MenuScreen extends StatefulWidget {
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
-/// Smart square-crop for Cloudinary thumbnails so every drink fills the
-/// thumbnail consistently (auto-focuses on the subject, not the background).
+/// Downsizes Cloudinary thumbnails for bandwidth WITHOUT cropping — the full
+/// image is preserved (c_limit only shrinks to fit within the width).
 String _squareThumbUrl(String url) {
   if (!url.contains('res.cloudinary.com') || !url.contains('/upload/')) {
     return url;
   }
-  return url.replaceFirst('/upload/', '/upload/c_fill,g_auto,ar_1:1,w_200/');
+  return url.replaceFirst('/upload/', '/upload/c_limit,w_300/');
 }
 
 class _MenuScreenState extends State<MenuScreen> {
@@ -410,7 +410,7 @@ class _MenuListItem extends StatelessWidget {
                 child: drink.imageUrl != null && drink.imageUrl!.isNotEmpty
                     ? Image.network(
                         _squareThumbUrl(drink.imageUrl!),
-                        fit: BoxFit.cover,
+                        fit: BoxFit.contain,
                         errorBuilder: (_, __, ___) => Center(
                           child: Text(drink.imageEmoji,
                               style: const TextStyle(fontSize: 32)),
