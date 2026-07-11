@@ -14,6 +14,15 @@ class MenuScreen extends StatefulWidget {
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
+/// Smart square-crop for Cloudinary thumbnails so every drink fills the
+/// thumbnail consistently (auto-focuses on the subject, not the background).
+String _squareThumbUrl(String url) {
+  if (!url.contains('res.cloudinary.com') || !url.contains('/upload/')) {
+    return url;
+  }
+  return url.replaceFirst('/upload/', '/upload/c_fill,g_auto,ar_1:1,w_200/');
+}
+
 class _MenuScreenState extends State<MenuScreen> {
   int _selectedTabIndex = 0;
   String _selectedSubFilter = 'all';
@@ -68,18 +77,6 @@ class _MenuScreenState extends State<MenuScreen> {
           .toList();
     }
     return drinks;
-  }
-
-  /// Smart square-crop for Cloudinary thumbnails so every drink fills the
-  /// thumbnail consistently (auto-focuses on the subject, not the background).
-  String _squareThumbUrl(String url) {
-    if (!url.contains('res.cloudinary.com') || !url.contains('/upload/')) {
-      return url;
-    }
-    return url.replaceFirst(
-      '/upload/',
-      '/upload/c_fill,g_auto,ar_1:1,w_200/',
-    );
   }
 
   @override
