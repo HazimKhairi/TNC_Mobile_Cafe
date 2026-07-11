@@ -181,7 +181,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         children: [
                           Icon(
                             tab['icon'] as IconData,
-                            size: 20,
+                            size: 22,
                             color: isSelected
                                 ? AppColors.primaryBrand
                                 : AppColors.textSecondary,
@@ -190,7 +190,7 @@ class _MenuScreenState extends State<MenuScreen> {
                           Text(
                             tab['label'] as String,
                             style: GoogleFonts.inter(
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: isSelected
                                   ? FontWeight.w700
                                   : FontWeight.w400,

@@ -8,7 +8,7 @@ import 'home/home_screen.dart';
 import 'menu/menu_screen.dart';
 import 'cart/cart_screen.dart';
 import 'order/order_history_screen.dart';
-import 'sales/sales_report_screen.dart';
+import 'admin/admin_hub_screen.dart';
 import 'profile/profile_screen.dart';
 
 class MainShell extends StatefulWidget {
@@ -26,11 +26,11 @@ class _MainShellState extends State<MainShell> {
     final isAdmin = context.watch<AuthProvider>().isAdmin;
 
     final screens = <Widget>[
-      const HomeScreen(),
+      HomeScreen(onSeeAllFeatured: () => setState(() => _currentIndex = 1)),
       const MenuScreen(),
       const CartScreen(),
       const OrderHistoryScreen(),
-      if (isAdmin) const SalesReportScreen() else const ProfileScreen(),
+      if (isAdmin) const AdminHubScreen() else const ProfileScreen(),
     ];
 
     // Reset index if out of bounds
@@ -69,8 +69,8 @@ class _MainShellState extends State<MainShell> {
                   onTap: () => setState(() => _currentIndex = 0),
                 ),
                 _NavItem(
-                  icon: Icons.restaurant_menu_outlined,
-                  activeIcon: Icons.restaurant_menu_rounded,
+                  icon: Icons.menu_book_outlined,
+                  activeIcon: Icons.menu_book_rounded,
                   label: 'Menu',
                   isActive: _currentIndex == 1,
                   onTap: () => setState(() => _currentIndex = 1),
@@ -87,9 +87,9 @@ class _MainShellState extends State<MainShell> {
                   onTap: () => setState(() => _currentIndex = 3),
                 ),
                 _NavItem(
-                  icon: isAdmin ? Icons.bar_chart_outlined : Icons.person_outline,
-                  activeIcon: isAdmin ? Icons.bar_chart_rounded : Icons.person_rounded,
-                  label: isAdmin ? 'Sales' : 'Profile',
+                  icon: isAdmin ? Icons.admin_panel_settings_outlined : Icons.person_outline,
+                  activeIcon: isAdmin ? Icons.admin_panel_settings_rounded : Icons.person_rounded,
+                  label: isAdmin ? 'Admin' : 'Profile',
                   isActive: _currentIndex == 4,
                   onTap: () => setState(() => _currentIndex = 4),
                 ),
@@ -131,7 +131,7 @@ class _NavItem extends StatelessWidget {
             Icon(
               isActive ? activeIcon : icon,
               size: 24,
-              color: isActive ? AppColors.accentBlue : AppColors.textSecondary,
+              color: isActive ? AppColors.primaryBrand : AppColors.textSecondary,
             ),
             const SizedBox(height: 4),
             Text(
@@ -139,7 +139,7 @@ class _NavItem extends StatelessWidget {
               style: GoogleFonts.inter(
                 fontSize: 10,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isActive ? AppColors.accentBlue : AppColors.textSecondary,
+                color: isActive ? AppColors.primaryBrand : AppColors.textSecondary,
               ),
             ),
           ],
@@ -169,14 +169,14 @@ class _CartNavItem extends StatelessWidget {
                 height: 52,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [AppColors.accentBlue, AppColors.primaryBrand],
+                    colors: [AppColors.primaryBrand, AppColors.darkGreen],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.accentBlue.withValues(alpha: 0.3),
+                      color: AppColors.primaryBrand.withValues(alpha: 0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
