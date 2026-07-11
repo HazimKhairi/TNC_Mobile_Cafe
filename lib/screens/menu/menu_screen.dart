@@ -165,7 +165,8 @@ class _MenuScreenState extends State<MenuScreen> {
                       });
                     },
                     child: Container(
-                      padding: const EdgeInsets.only(top: 12, bottom: 8),
+                      padding: const EdgeInsets.only(
+                          top: 12, bottom: 8, left: 4, right: 4),
                       decoration: BoxDecoration(
                         border: Border(
                           bottom: BorderSide(
@@ -187,20 +188,22 @@ class _MenuScreenState extends State<MenuScreen> {
                                 : AppColors.textSecondary,
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            tab['label'] as String,
-                            style: GoogleFonts.inter(
-                              fontSize: 11,
-                              fontWeight: isSelected
-                                  ? FontWeight.w700
-                                  : FontWeight.w400,
-                              color: isSelected
-                                  ? AppColors.primaryBrand
-                                  : AppColors.textSecondary,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              tab['label'] as String,
+                              style: GoogleFonts.inter(
+                                fontSize: 10.5,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w400,
+                                color: isSelected
+                                    ? AppColors.primaryBrand
+                                    : AppColors.textSecondary,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
                             ),
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
