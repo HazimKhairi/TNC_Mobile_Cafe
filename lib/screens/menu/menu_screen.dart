@@ -72,9 +72,12 @@ class _MenuScreenState extends State<MenuScreen> {
     }
 
     if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
       drinks = drinks
           .where(
-            (d) => d.name.toLowerCase().contains(_searchQuery.toLowerCase()),
+            (d) =>
+                d.name.toLowerCase().contains(q) ||
+                d.categoryId.toLowerCase().contains(q),
           )
           .toList();
     }
