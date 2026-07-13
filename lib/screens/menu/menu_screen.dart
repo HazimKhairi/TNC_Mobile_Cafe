@@ -33,7 +33,7 @@ class _MenuScreenState extends State<MenuScreen> {
   static const List<Map<String, dynamic>> _mainTabs = [
     {'label': 'All', 'icon': Icons.grid_view_outlined, 'categoryIds': <String>['all']},
     {'label': 'Coffee', 'icon': Icons.coffee_outlined, 'categoryIds': <String>['coffee']},
-    {'label': 'Non-Coffee', 'icon': Icons.local_drink_outlined, 'categoryIds': <String>['matcha', 'tea']},
+    {'label': 'Non-Coffee', 'icon': Icons.local_drink_outlined, 'categoryIds': <String>['matcha', 'tea', 'buttercreme', 'frappe']},
     {'label': 'Ice Blended', 'icon': Icons.icecream_outlined, 'categoryIds': <String>['ice_blended']},
     {'label': 'Soda', 'icon': Icons.local_bar_outlined, 'categoryIds': <String>['soda']},
     {'label': 'Hot Drink', 'icon': Icons.local_fire_department_outlined, 'categoryIds': <String>['hot_drink']},
@@ -45,6 +45,8 @@ class _MenuScreenState extends State<MenuScreen> {
       {'id': 'all', 'label': 'All'},
       {'id': 'matcha', 'label': 'Matcha'},
       {'id': 'tea', 'label': 'Tea & Chocolate'},
+      {'id': 'buttercreme', 'label': 'Buttercreme'},
+      {'id': 'frappe', 'label': 'Frappe'},
     ],
   };
 
